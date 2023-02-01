@@ -9,15 +9,13 @@ from bokeh.models import Button, Div
 from scipy.spatial import cKDTree
 import numpy as np
 
-from joblib import Parallel, delayed
-
 import bokehelect as electrostatics
 import numpy
 from bokehelect import (ElectricField, GaussianCircle, PointCharge,
                             Potential)
 
-import warnings
-warnings.filterwarnings('error')
+# import warnings
+# warnings.filterwarnings('error')
 # import numba as nb
 # @nb.njit
 def coulomb_pot(r,xgrid,ygrid, charges):
@@ -110,6 +108,7 @@ def on_click_callback():
             closest = -1
             _dr2 = 10.0
             _dr = 0
+            closest =-1
             for p in range(len(_x)):
                 if p!=k and _q[p]!=0 :
                     dr = r[p]-r[k]
@@ -117,9 +116,11 @@ def on_click_callback():
                     if dr2<_dr2:
                         _dr = dr
                         _dr2 = _dr2
+                        closest = p
 
-            
-            angle = np.arctan(_dr[1]/_dr[0])
+            # if _q[k]<_q[closest]:
+                # _dr*=-1
+            angle = np.arctan2(_dr[1],_dr[0])
             # print(k,angle,dr)
             g = GaussianCircle(charges[k].x, 0.05,angle)
             for fp in g.fluxpoints(field,nlines):
@@ -129,15 +130,9 @@ def on_click_callback():
         g = GaussianCircle(charges[k].x, 0.05)
         for fp in g.fluxpoints(field,nlines):
             fieldlines.append(field.line(fp))
-
-
-    # def evaluate_pot(i,j):
-    #     return potential.magnitude([x[i, j], y[i, j]])
-
-    # for i in range(x.shape[0]):
-    #     z[i] = Parallel(n_jobs=4)(delayed(evaluate_pot)(i,j) for j in range(x.shape[1]))
-    # z = logmodulus(z)
+    # evaluate the potential
     z = coulomb_pot(r,x,y,_q)
+    # transform it to improve the visualisation
     z = logmodulus(z)
 
     new_contour_data = contour_data(x, y, z, levels)
@@ -169,6 +164,7 @@ def on_click_callback():
 
 
 # data_table.source.on_change('data', on_change_callback)
+
 # Set up the charges, electric field, and potential
 charges = [PointCharge(1, [0, 0]),
         #    PointCharge(-1, [0.5, 0])
@@ -193,17 +189,8 @@ x, y = np.meshgrid(
 
 z = coulomb_pot(np.array([_x,_y]).T,x,y,qs)
 z = logmodulus(z)
-# def evaluate_pot(i,j):
-#     return potential.magnitude([x[i, j], y[i, j]])
-
-
-# for i in range(x.shape[0]):
-#     z[i] = Parallel()(delayed(evaluate_pot)(i,j) for j in range(x.shape[1]))
-
-
 levels = np.linspace(-2,2,9)
 
-# contour_renderer = fig.image(image='z', source=contour_source,  palette="Sunset11")
 contour_renderer = fig.contour( x, y, z, levels=levels, 
     fill_color=Plasma,
 )
