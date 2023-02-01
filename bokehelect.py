@@ -443,5 +443,4 @@ class GaussianCircle:
         # the corresponding angles.
         v = linspace(0, intflux[-1], n+1)
         a = lininterp2(intflux, a, v)[:-1]
-
         return self.r*array([cos(a), sin(a)]).T + self.x
