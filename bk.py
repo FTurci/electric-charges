@@ -199,7 +199,7 @@ fig.add_layout(Arrow(end=vh, x_start='x_start', y_start='y_start', x_end='x_end'
 button = Button(label="Compute", button_type="primary")
 button.on_click(on_click_callback)
 
-title =  Div(text='<h1 style="text-align: center">Potential and Field Liness of Multiple Point Charges</h1>\n by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>')
+title =  Div(text='<h1 style="text-align: center">Potential and Field Lines of Multiple Point Charges</h1>\n by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>')
 layout = column(title,row(fig, column(data_table,button)), )    
 # Div(text='by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>') )
 curdoc().title = "Potential and Field Lines of Multiple Point Charges"
