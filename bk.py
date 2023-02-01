@@ -43,8 +43,8 @@ num_charges = len(charges)
 columns = [TableColumn(field="q",title="Charge"),TableColumn(field="x",title="x"),TableColumn(field="y",title="y")]
 data_table = DataTable(columns=columns, source=source,editable=True)
 fig = figure(
-    width=700, #pixels
-    height=700,
+    width=600, #pixels
+    height=600,
     x_range=(XMIN, XMAX),
     y_range=(YMIN, YMAX)
     )
