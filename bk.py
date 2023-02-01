@@ -11,6 +11,7 @@ from bokeh.models import Button, Div
 from scipy.spatial import cKDTree
 import numpy as np
 
+from joblib import Parallel, delayed
 
 import bokehelect as electrostatics
 import numpy
@@ -66,6 +67,7 @@ def convert_column(col):
 
 # def on_change_callback(attr,old,new):
 def on_click_callback():
+    global z
     _q = convert_column(source.data['q'])
     _x = convert_column(source.data['x'])
     _y = convert_column(source.data['y'])
@@ -96,14 +98,12 @@ def on_click_callback():
         for fp in g.fluxpoints(field,nlines,uniform=True):
             fieldlines.append(field.line(fp))
 
-    x, y = np.meshgrid(
-            np.linspace(XMIN, XMAX,128),
-            np.linspace(XMIN, XMAX,128))
-      
-    z = np.zeros_like(x)
+    def evaluate_pot(i,j):
+        return potential.magnitude([x[i, j], y[i, j]])
+
     for i in range(x.shape[0]):
-                for j in range(x.shape[1]):
-                    z[i, j] = logmodulus(potential.magnitude([x[i, j], y[i, j]]))
+        z[i] = Parallel(n_jobs=4, prefer="threads")(delayed(evaluate_pot)(i,j) for j in range(x.shape[1]))
+    z = logmodulus(z)
 
     new_contour_data = contour_data(x, y, z, levels)
     contour_renderer.set_data(new_contour_data)
@@ -151,14 +151,17 @@ for fp in g.fluxpoints(field,nlines):
 # fieldlines.append(field.line([10, 0]))
 
 x, y = np.meshgrid(
-            np.linspace(XMIN, XMAX,200),
-            np.linspace(XMIN, XMAX,200))
+            np.linspace(XMIN, XMAX,128),
+            np.linspace(XMIN, XMAX,128))
 z = np.zeros_like(x)
-u = np.zeros_like(x)
+
+def evaluate_pot(i,j):
+    return potential.magnitude([x[i, j], y[i, j]])
+
 
 for i in range(x.shape[0]):
-            for j in range(x.shape[1]):
-                z[i, j] = logmodulus(potential.magnitude([x[i, j], y[i, j]]))
+    z[i] = Parallel()(delayed(evaluate_pot)(i,j) for j in range(x.shape[1]))
+z = logmodulus(z)
 
 levels = np.linspace(-2,2,9)
 
