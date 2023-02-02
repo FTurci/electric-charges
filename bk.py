@@ -3,21 +3,19 @@ from bokeh.models import ColumnDataSource
 from bokeh.palettes import Plasma, Accent 
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import row,column
-from bokeh.models import Arrow, VeeHead, Slider, DataTable,TableColumn,ColumnDataSource,MultiLine
+from bokeh.models import Arrow, VeeHead, Select, DataTable,TableColumn,ColumnDataSource,MultiLine
 from bokeh.plotting.contour import contour_data
 from bokeh.models import Button, Div
-from scipy.spatial import cKDTree
 import numpy as np
 
+from scipy.spatial.distance import pdist
 import bokehelect as electrostatics
-import numpy
 from bokehelect import (ElectricField, GaussianCircle, PointCharge,
                             Potential)
 
 # import warnings
 # warnings.filterwarnings('error')
-# import numba as nb
-# @nb.njit
+
 def coulomb_pot(r,xgrid,ygrid, charges):
     dx = r[0,0]-xgrid
     dy = r[0,1]-ygrid
@@ -30,11 +28,13 @@ def coulomb_pot(r,xgrid,ygrid, charges):
         invdr += charges[p]/dr
     return invdr
 
+def nlines(charge):
+    return 4+int(abs(charge)/0.1)
 def min_diff_pos(array_like, target):
     return np.abs(np.array(array_like)-target).argmin()
 def logmodulus(x):
     return np.sign(x)*(np.log10(np.abs(x)+1))
-# pylint: disable=invalid-name
+
 
 XMIN, XMAX =-1, 1
 YMIN, YMAX = -1, 1
@@ -45,13 +45,11 @@ electrostatics.init(XMIN, XMAX, YMIN, YMAX, ZOOM, XOFFSET)
 
 
 # create table of charges
-
-
 inputs = []
-qs = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+qs = [1]
 _x = np.zeros(len(qs))
-_y = np.zeros(len(qs))
-nlines = 4
+_y = np.zeros(len(qs))  
+
 source = ColumnDataSource(dict(q=qs,x=_x,y=_y))
 columns = [TableColumn(field="q",title="Charge"),TableColumn(field="x",title="x"),TableColumn(field="y",title="y")]
 data_table = DataTable(columns=columns, source=source,editable=True)
@@ -79,6 +77,10 @@ def convert_column(col):
 
 # def on_change_callback(attr,old,new):
 def on_click_callback():
+    update()
+
+def update():
+    "Update plot"
     global z
     _q = convert_column(source.data['q'])
     _x = convert_column(source.data['x'])
@@ -92,10 +94,7 @@ def on_click_callback():
     field = ElectricField(charges)
     potential = Potential(charges)
 
-    print("here")
     r = np.array([_x,_y]).T
-    print(r)
-
     fieldlines = []
     
     print(np.nonzero(_q))
@@ -123,12 +122,12 @@ def on_click_callback():
             angle = np.arctan2(_dr[1],_dr[0])
             # print(k,angle,dr)
             g = GaussianCircle(charges[k].x, 0.05,angle)
-            for fp in g.fluxpoints(field,nlines):
+            for fp in g.fluxpoints(field,nlines(_q[k])):
                 fieldlines.append(field.line(fp))
 
     else:
         g = GaussianCircle(charges[k].x, 0.05)
-        for fp in g.fluxpoints(field,nlines):
+        for fp in g.fluxpoints(field,nlines(_q[k])):
             fieldlines.append(field.line(fp))
     # evaluate the potential
     z = coulomb_pot(r,x,y,_q)
@@ -161,9 +160,56 @@ def on_click_callback():
     ends = np.array(ends)
     arrow_source.data = dict(x_start=starts[:,0], x_end=ends[:,0],y_start=starts[:,1], y_end=ends[:,1])
 
+def on_change_selection(attrname, old,new):
+    if new == 'single':
+        _q = [1.0]
+        _x = [0.0]
+        _y = [0.0]
+    if new == 'dipole':
+        _q = [1.0,-1]
+        _x = [-0.5,0.5]
+        _y = [0.0,0]
+    if new == 'triangle':
+        R = 0.8
+        theta = np.pi/2
+        _q = [1.0,-1.0,1.0]
+        _x = [R*np.cos(theta),R*np.cos(theta+2*np.pi/3),R*np.cos(theta+4*np.pi/3)]
+        _y = [R*np.sin(theta),R*np.sin(theta+2*np.pi/3),R*np.sin(theta+4*np.pi/3)]
+    if new == 'square':
+        _q = [1.0,-1,1.0,-1.0]
+        _x = [-0.5,0.5,0.5,-0.5]
+        _y = [-0.5,-0.5,0.5,0.5]
+    if new == 'random':
+        n = 8
+        _q = np.random.uniform(0.05,1,n)*np.random.choice([-1,1],n)
+        # _x = np.random.uniform(-1,1,n)
+        _x = [ np.random.uniform(-1,1)]
+        _y =[ np.random.uniform(-1,1)]
+        while len(_y)<n:
+            xtrial = np.random.uniform(-1,1)
+            ytrial = np.random.uniform(-1,1)
+            _x.append(xtrial)
+            _y.append(ytrial)
+            r=np.array([_x,_y]).T
+            print(r)
+            if  min(pdist(r))<0.1:
+                _x.pop()
+                _y.pop()
+            else:
+                pass
+                
+    if new == 'empty':
+        n = 15
+        _q = np.zeros(n)
+        _x = np.zeros(n)
+        _y = np.zeros(n)  
+    
+    source.data = dict(q=np.round(_q,2),x=np.round(_x,2),y=np.round(_y,2))
+    # update()
 
 
-# data_table.source.on_change('data', on_change_callback)
+##########################################
+
 
 # Set up the charges, electric field, and potential
 charges = [PointCharge(1, [0, 0]),
@@ -173,19 +219,17 @@ charges = [PointCharge(1, [0, 0]),
 field = ElectricField(charges)
 potential = Potential(charges)
 
-# Set up the Gaussian surface
+# Set up one Gaussian surface
 g = GaussianCircle(charges[0].x, 0.1)
-
 # Create the field lines
 fieldlines = []
-for fp in g.fluxpoints(field,nlines):
+for fp in g.fluxpoints(field,8):
     fieldlines.append(field.line(fp))
 # fieldlines.append(field.line([10, 0]))
 
 x, y = np.meshgrid(
-            np.linspace(XMIN, XMAX,128),
-            np.linspace(XMIN, XMAX,128))
-# z = np.zeros_like(x)
+            np.linspace(XMIN, XMAX,512),
+            np.linspace(XMIN, XMAX,512))
 
 z = coulomb_pot(np.array([_x,_y]).T,x,y,qs)
 z = logmodulus(z)
@@ -213,6 +257,8 @@ line_sources  = ColumnDataSource(dict(
     )
 )
 
+
+
 starts = np.array(starts)
 ends = np.array(ends)
 arrow_source = ColumnDataSource(dict(x_start=starts[:,0], x_end=ends[:,0],y_start=starts[:,1], y_end=ends[:,1]))
@@ -223,12 +269,13 @@ fig.add_glyph(line_sources, glyph)
 vh = VeeHead(size=7, fill_color='white',line_color='white')
 fig.add_layout(Arrow(end=vh, x_start='x_start', y_start='y_start', x_end='x_end', y_end='y_end', source=arrow_source))
 
-
-button = Button(label="Compute", button_type="primary")
-button.on_click(on_click_callback)
+selection = Select(title="Configuration:", value="single", options=["single", "dipole", "triangle", "square","random","empty"])
+selection.on_change('value',on_change_selection)
+compute = Button(label="Compute", button_type="primary",align='end')
+compute.on_click(on_click_callback)
 
 title =  Div(text='<h1 style="text-align: center">Potential and Field Lines of Multiple Point Charges</h1>\n by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>')
-layout = column(title,row(fig, column(data_table,button)), )    
+layout = column(title,row(fig, column(row(selection,compute),data_table)) )    
 # Div(text='by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>') )
 curdoc().title = "Potential and Field Lines of Multiple Point Charges"
 curdoc().add_root(layout)
