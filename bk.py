@@ -43,6 +43,7 @@ XOFFSET = 0.0
 nlevels=18
 electrostatics.init(XMIN, XMAX, YMIN, YMAX, ZOOM, XOFFSET)
 levels = np.linspace(-2,2,nlevels)
+many_levels = np.linspace(-2,2,256)
 
 # create table of charges
 inputs = []
@@ -135,9 +136,13 @@ def update():
     # transform it to improve the visualisation
     z = logmodulus(z)
     levels = np.linspace(z.min(),z.max(),nlevels)
+    many_levels = np.linspace(-2,2,256)
     print(z.min(), z.max())
-    new_contour_data = contour_data(x, y, z, levels)
+    new_contour_data = contour_data(x, y, z, levels, want_fill=False)
     contour_renderer.set_data(new_contour_data)
+    many_contour_data = contour_data(x, y, z, many_levels, want_line=False)
+    field_renderer.set_data(many_contour_data)
+
 
     xl = []
     yl= []
@@ -236,9 +241,13 @@ x, y = np.meshgrid(
 z = coulomb_pot(np.array([_x,_y]).T,x,y,qs)
 z = logmodulus(z)
 
-
-contour_renderer = fig.contour( x, y, z, levels=levels, 
+field_renderer = fig.contour( x, y, z, levels=many_levels, 
     fill_color=Plasma256, 
+    # line_color='black',
+    # line_width=0
+    )
+contour_renderer = fig.contour( x, y, z, levels=levels, 
+    # fill_color=Plasma256, 
     line_color='black',#['#75d5ff']*int(nlevels/2) + ['black']*int(nlevels/2),
     line_dash=['solid']*int(nlevels/2) + ['dashed']*int(nlevels/2),
     line_width=1.)
