@@ -1,6 +1,6 @@
 from bokeh.io import show
 from bokeh.models import ColumnDataSource
-from bokeh.palettes import Plasma, Accent 
+from bokeh.palettes import Plasma256 
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import row,column
 from bokeh.models import Arrow, VeeHead, Select, DataTable,TableColumn,ColumnDataSource,MultiLine
@@ -40,9 +40,9 @@ XMIN, XMAX =-1, 1
 YMIN, YMAX = -1, 1
 ZOOM = 1
 XOFFSET = 0.0
-
+nlevels=18
 electrostatics.init(XMIN, XMAX, YMIN, YMAX, ZOOM, XOFFSET)
-
+levels = np.linspace(-2,2,nlevels)
 
 # create table of charges
 inputs = []
@@ -129,11 +129,13 @@ def update():
         g = GaussianCircle(charges[k].x, 0.05)
         for fp in g.fluxpoints(field,nlines(_q[k])):
             fieldlines.append(field.line(fp))
+    
     # evaluate the potential
     z = coulomb_pot(r,x,y,_q)
     # transform it to improve the visualisation
     z = logmodulus(z)
-
+    levels = np.linspace(z.min(),z.max(),nlevels)
+    print(z.min(), z.max())
     new_contour_data = contour_data(x, y, z, levels)
     contour_renderer.set_data(new_contour_data)
 
@@ -233,11 +235,13 @@ x, y = np.meshgrid(
 
 z = coulomb_pot(np.array([_x,_y]).T,x,y,qs)
 z = logmodulus(z)
-levels = np.linspace(-2,2,9)
+
 
 contour_renderer = fig.contour( x, y, z, levels=levels, 
-    fill_color=Plasma,
-)
+    fill_color=Plasma256, 
+    line_color='black',#['#75d5ff']*int(nlevels/2) + ['black']*int(nlevels/2),
+    line_dash=['solid']*int(nlevels/2) + ['dashed']*int(nlevels/2),
+    line_width=1.)
 
 xl = []
 yl= []
