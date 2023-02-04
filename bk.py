@@ -127,8 +127,8 @@ def update():
                 fieldlines.append(field.line(fp))
 
     else:
-        g = GaussianCircle(charges[k].x, 0.05)
-        for fp in g.fluxpoints(field,nlines(_q[k])):
+        g = GaussianCircle(charges[0].x, 0.05)
+        for fp in g.fluxpoints(field,nlines(_q[0])):
             fieldlines.append(field.line(fp))
     
     # evaluate the potential
@@ -287,8 +287,8 @@ selection.on_change('value',on_change_selection)
 compute = Button(label="Compute", button_type="primary",align='end')
 compute.on_click(on_click_callback)
 
-title =  Div(text='<h1 style="text-align: center">Potential and Field Lines of Multiple Point Charges</h1>\n by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>')
+title =  Div(text='<h1 style="text-align: center">Electric Field and Potential of Multiple Charges</h1>\n<h2>   @<a href="https://francescoturci.net" target="_blank">Francesco Turci</a> </h2>')
 layout = column(title,row(fig, column(row(selection,compute),data_table)) )    
 # Div(text='by <a href="https://francescoturci.net" target="_blank"> Francesco Turci</a>') )
-curdoc().title = "Potential and Field Lines of Multiple Point Charges"
+curdoc().title = "Electric Field and Potential of Multiple Charges"
 curdoc().add_root(layout)
